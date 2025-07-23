@@ -18,7 +18,8 @@ db.run(`
     CREATE TABLE IF NOT EXISTS url(
         ID INTEGER PRIMARY KEY,
         LONG_URL TEXT NOT NULL,
-        SHORT_URL TEXT
+        SHORT_URL TEXT,
+        EXPIRY TEXT DEFAULT (datetime('now', '+30 minutes'))
     )
 `);
 
@@ -44,19 +45,19 @@ app.post("/shorturls", logger, async (req, res) => {
         }
     );
     const new_url = `http://localhost:${PORT}/shorturls/${shortcode}`;
-    res.status(201).json({ shortLink: new_url, expiry: expiry });
+    res.status(201).json({ shortLink: new_url, expiry: expiry.toString() });
 
 });
 
-app.get("shorturls/:shortcode", (req, res) => {
+app.get("/shorturls/:shortcode", (req, res) => {
     const { shortcode } = req.params;
     db.get(
-        "SELECT LONG_URL FROM url WHERE SHORT_URL = ?",
+        "SELECT * FROM url WHERE SHORT_URL = ?",
         [shortcode],
         (err, row) => {
             if (err) return res.status(500).json({ message: err.message });
             if (!row) return res.status(404).json({ message: "Shortcode not found" });
-            res.json({ originalUrl: row.LONG_URL });
+            res.json({ short_url: row.SHORT_URL, expiry: row.EXPIRY });
         }
     );
 });
